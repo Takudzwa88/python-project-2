@@ -2,69 +2,95 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import logging
-from datetime import datetime
+import datetime
+import os  # ← THIS was missing
+import schedule
+import time
 
-# Setup logging
-logging.basicConfig(filename='scraper.log', level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Logging setup
+logging.basicConfig(
+    filename='scraper.log',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 def scrape_jobs():
+    print("Starting scraping process...")
     url = "https://vacancymail.co.zw/jobs/"
-    base_url = "https://vacancymail.co.zw"
-    jobs = []
+    headers = {"User-Agent": "Mozilla/5.0"}
 
     try:
-        response = requests.get(url)
+        response = requests.get(url, headers=headers)
         response.raise_for_status()
+
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        job_boxes = soup.find_all("div", class_="job-box")[:10]
+        job_cards = soup.select(".job-listing")
+        if not job_cards:
+            print("No job listings found.")
+            return
 
-        for job in job_boxes:
-            try:
-                title_tag = job.find("a")
-                title = title_tag.text.strip()
-                detail_url = base_url + title_tag["href"]
+        job_data = []
 
-                company = job.find("div", class_="company").text.strip()
-                location = job.find("div", class_="location").text.strip()
-                expiry = job.find("div", class_="expiry").text.strip()
+        for job in job_cards[:10]:  # Limit to top 10 jobs
+            title = job.select_one(".job-listing-title").text.strip() if job.select_one(".job-listing-title") else "N/A"
+            company = job.select_one(".job-listing-company").text.strip() if job.select_one(".job-listing-company") else "N/A"
+            location = job.select_one(".icon-material-outline-location-on").find_next('li').text.strip() if job.select_one(".icon-material-outline-location-on") else "N/A"
+            expiry = job.select_one(".icon-material-outline-access-time").find_next('li').text.strip() if job.select_one(".icon-material-outline-access-time") else "N/A"
+            description = job.select_one(".job-listing-text").text.strip() if job.select_one(".job-listing-text") else "N/A"
 
-                # Get job description from the detail page
-                detail_resp = requests.get(detail_url)
-                detail_soup = BeautifulSoup(detail_resp.text, 'html.parser')
-                desc_tag = detail_soup.find("div", class_="job-description")
-                description = desc_tag.text.strip() if desc_tag else "N/A"
+            job_data.append({
+                "Title": title,
+                "Company": company,
+                "Location": location,
+                "Expiry Date": expiry,
+                "Description": description
+            })
 
-                jobs.append({
-                    "Title": title,
-                    "Company": company,
-                    "Location": location,
-                    "Expiry Date": expiry,
-                    "Description": description
-                })
-
-            except Exception as e:
-                logging.warning(f"Error processing a job post: {e}")
-                continue
-
-        # Save to CSV
-        df = pd.DataFrame(jobs)
+        df = pd.DataFrame(job_data)
         df.drop_duplicates(inplace=True)
-        df.to_csv("scraped_data.csv", index=False)
 
-        logging.info("Scraping successful. Data saved to scraped_data.csv")
-        print("✅ Scraping complete. Data saved to scraped_data.csv")
+        os.makedirs("data", exist_ok=True)
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        file_name = f"data/scraped_data_{timestamp}.csv"
+        df.to_csv(file_name, index=False)
+
+        print(f"✅ Scraping completed! Data saved to {file_name}")
+        logging.info("Scraping completed successfully.")
 
     except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to fetch jobs page: {e}")
-        print("❌ Failed to fetch job listings. Check your internet or the website.")
-    except Exception as e:
-        logging.error(f"General error: {e}")
-        print("❌ An error occurred. Check scraper.log for details.")
+        logging.error(f"Request error: {e}")
+        print(f"❌ Request error: {e}")
 
-# Only run when this script is executed directly
+    except Exception as e:
+        logging.error(f"Unexpected error: {e}")
+        print(f"❌ An unexpected error occurred: {e}")
+
 if __name__ == "__main__":
     scrape_jobs()
+import schedule
+import time
 
+# Schedule the scraper
+schedule.every().day.at("09:00").do(scrape_jobs)
 
+print("Scheduler is running. Press Ctrl+C to stop.")
+while True:
+    schedule.run_pending()
+    time.sleep(1)
+
+if __name__ == "__main__":
+    # Run once immediately
+    scrape_jobs()
+
+    # Set up scheduler to run daily
+    import schedule
+    import time
+
+    schedule.every().day.at("09:00").do(scrape_jobs)
+
+    print("⏳ Scheduler is running. Press Ctrl+C to stop.")
+    while True:
+        schedule.run_pending()
+        time.sleep(1)

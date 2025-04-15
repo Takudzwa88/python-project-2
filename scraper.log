@@ -1,2 +1,12 @@
 2025-04-15 11:49:15,787 - INFO - Scraping successful. Data saved to scraped_data.csv
 2025-04-15 11:49:59,547 - INFO - Scraping successful. Data saved to scraped_data.csv
+2025-04-15 14:11:19,592 - INFO - Scraping successful. Data saved to scraped_data.csv
+2025-04-15 14:16:04,861 - INFO - Scraping successful. Data saved to scraped_data.csv
+2025-04-15 14:26:50,794 - INFO - Scraping completed successfully.
+2025-04-15 14:30:52,855 - INFO - Scraping completed successfully.
+2025-04-15 14:32:22,881 - INFO - Scraping completed successfully.
+2025-04-15 14:33:31,041 - ERROR - Unexpected error: name 'os' is not defined
+2025-04-15 14:36:13,004 - ERROR - Unexpected error: name 'os' is not defined
+2025-04-15 14:37:46,106 - ERROR - Unexpected error: name 'os' is not defined
+2025-04-15 14:39:14,312 - INFO - Scraping completed successfully.
+2025-04-15 14:45:33,313 - INFO - Scraping completed successfully.
