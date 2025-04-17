@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import logging
 import datetime
-import os  # ← THIS was missing
+import os  
 import schedule
 import time
 
